@@ -1,5 +1,12 @@
+# February 2020
+# Jessica K Barrett
+# Code for Taylor-Robinson, D., Schlüter, D., Diggle, P., & Barrett, J. Explaining the sex effect on survival 
+# in cystic fibrosis: a joint modelling study of UK registry data. (Currently in press for Epidemiology).
+# This R script contains functions to read in the CF data, fit the joint model and display model results. 
+
+
 #########################################################################################################
-#################################### GENERATES THE CF DATAFRAMES ########################################
+#################################### CREATES THE CF DATAFRAMES ########################################
 
 
 getdat <- function(whiteonly=T, rs=F, fortyplus=F, datafile){
