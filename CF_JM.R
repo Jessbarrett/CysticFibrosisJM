@@ -1,7 +1,7 @@
-
-
-
-
+# February 2020
+# Jessica K Barrett
+# Code for Taylor-Robinson, D., Schlüter, D., Diggle, P., & Barrett, J. Explaining the sex effect on survival 
+# in cystic fibrosis: a joint modelling study of UK registry data. (Currently in press for Epidemiology).
 
 rm(list=ls())
 
@@ -54,11 +54,23 @@ summary.modelfit(cffit.rs.epinet, digits=3)
 
 rm(list=ls())
 
-# Use fit from old data for initial standard errors
-# !!!!! Put the values in here
-load(file=paste(path_output_olddata,"cffit_9_new.Rdata",sep=""))
+# Use fit from old data for ballpark standard errors - these are used to rescale parameters to
+# help the optimization algorithm
+# Values used for ballpark SEs were:
+# Longitudinal parameters
+#Intercept=0.786786761, ageatvisit=0.067345968, ageatvisitsq=0.001467728, birthyear_c=0.058927363 
+#sex=0.814283964, F508.0.1.NT=1.102781394, ageatvisit:sex=0.053955983, birthyear_c:sex=0.070292025, 
+#ageatvisit:F508.0.1.NT=0.083821656, birthyear_c:F508.0.1.NT=0.070580337
+# sigmay=0.004247142
+# Survival parameters
+#Intercept=0.088302592, Age=0.004526344, birthyear_c=0.006980800, sex=0.0423933050, F508.0.1.NT=0.091629060,
+# FEV=0.001292731, FEVslope=0.026082779
+# Random effects distribution 
+# sigma0=0.014886445, sigma1=0.015346500, rho=0.035203753              
+load("cffit_9_new.Rdata")
 initses <- cffit.9$se
 rm(list=setdiff(ls(),c("initses")))
+
 # Use fit to random sample for intial parameter values
 load(file="cffit_RS.RData")
 inits <- cffit.rs$estimate
@@ -94,7 +106,6 @@ save(list=ls(),file="cffit.Rdata")
 summary.modelfit(cffit, digits=3)
 
 
-
 ############### USE SMALLER PMNORM TOLERANCE TO GET STANDARD ERRORS ###################
 
 rm(list=ls())
@@ -115,7 +126,7 @@ nearpdfit <- nearPD(hessinv)
 hessinvnew <- nearpdfit$mat
 se <- sqrt(diag(hessinvnew))*scaleses
 # Save standard error estimates in cffit
-cffit.epinet$se.new <- se.test
+cffit.epinet$se.new <- se
 # Save results
 save(list=ls(),file="cffit.Rdata")
 
@@ -206,7 +217,7 @@ reps <- table(dat.y$id)
 startage <- tapply(dat.y$ageatvisit,dat.y$id,min)
 visittime <- dat.y$ageatvisit - rep(startage,reps)
 timeinterval.y <- as.integer(floor(visittime)+1)
-# Gives 9741x19 matrix of mean FEV in each time interval for each id, NA if no FEV measurement taken
+# Gives Nx19 matrix of mean FEV in each time interval for each id, NA if no FEV measurement taken
 meanfevbyinterval <- tapply(dat.y$fev,data.frame(dat.y$id,timeinterval.y),mean)
 # Add an extra column of NA's for time interval 20
 meanfevbyinterval <- cbind(meanfevbyinterval,NA)
