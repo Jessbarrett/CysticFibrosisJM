@@ -1,3 +1,9 @@
+# February 2020
+# Jessica K Barrett
+# Code for Taylor-Robinson, D., Schlüter, D., Diggle, P., & Barrett, J. Explaining the sex effect on survival 
+# in cystic fibrosis: a joint modelling study of UK registry data. (Currently in press for Epidemiology).
+# This R script contains code to produce the tables and plots in the paper. 
+
 #######################################################################################
 ##################    POPULATION CHARACTERISTICS TABLE   ##############################
 
@@ -15,7 +21,7 @@ cfsurv$imd_bin <- as.numeric(cfsurv$imd<0)
 cfdat$imd_bin <- as.numeric(cfdat$imd<0)
 
 # Get age at diagnosis data from separate file 
-load(paste(path_epidata,"IdsDiagnosisAge.RData",sep=""))
+load("IdsDiagnosisAge.RData")
 # Select the correct dataframe from the list dataList 
 ageatdiagdata <- dataList[[1]]
 hist(ageatdiagdata$dmg_ageatdiagnosis)
@@ -166,26 +172,6 @@ rr
 rrlower
 rrupper
 
-# To get ratio of survival probabilities
-# Relative risk
-rr <- prob2/prob1
-# Standard errors for probit linear predictors
-xb1var <- as.numeric(Xsurv1%*%Valpha%*%Xsurv1)
-xb2var <- as.numeric(Xsurv2%*%Valpha%*%Xsurv2)
-# Covariance between xb1 and xb2
-xb1xb2cov <- as.numeric(Xsurv1%*%Valpha%*%Xsurv2)
-# Use delta method to get standard error for the log relative risk (note derivative of pnorm is dnorm)
-xbV <- matrix(c(xb1var,xb1xb2cov,xb1xb2cov,xb2var),nrow=2)
-gradrr1 <- -dnorm(sum(Xsurv1*alpha))/prob1
-gradrr2 <- dnorm(sum(Xsurv2*alpha))/(prob2)
-gradrr <- c(gradrr1,gradrr2)
-rrvar <- gradrr%*%xbV%*%gradrr
-# 95% Confidence interval
-logrrlower <- log(rr)-qnorm(0.975)*sqrt(rrvar)
-rrlower <- exp(logrrlower)
-logrrupper <- log(rr)+qnorm(0.975)*sqrt(rrvar)
-rrupper <- exp(logrrupper)
-
 ### Probability ratio for difference of -1 in FEV slope
 fevslope2 <- fevslope - 1
 Xsurv4 <- c(X,currentfev1,fevslope2)
@@ -212,47 +198,22 @@ rr
 rrlower
 rrupper
 
-###To get ratio of survival probabilities
-### Probability ratio for difference of -1 in FEV slope
-fevslope2 <- fevslope - 1
-Xsurv4 <- c(X,currentfev1,fevslope2)
-prob4 <- pnorm(sum(Xsurv4*alpha))
-rr <- (prob4)/(prob1)
-
-# Standard errors for probit linear predictors
-xb1var <- as.numeric(Xsurv1%*%Valpha%*%Xsurv1)
-xb4var <- as.numeric(Xsurv4%*%Valpha%*%Xsurv4)
-# Covariance between xb1 and xb4
-xb1xb4cov <- as.numeric(Xsurv1%*%Valpha%*%Xsurv4)
-# Use delta method to get standard error for the log relative risk (note derivative of pnorm is dnorm)
-xbV <- matrix(c(xb1var,xb1xb4cov,xb1xb4cov,xb4var),nrow=2)
-gradrr1 <- -dnorm(sum(Xsurv1*alpha))/(prob1)
-gradrr2 <- dnorm(sum(Xsurv4*alpha))/(prob4)
-gradrr <- c(gradrr1,gradrr2)
-rrvar <- gradrr%*%xbV%*%gradrr
-# 95% Confidence interval
-logrrlower <- log(rr)-qnorm(0.975)*sqrt(rrvar)
-rrlower <- exp(logrrlower)
-logrrupper <- log(rr)+qnorm(0.975)*sqrt(rrvar)
-rrupper <- exp(logrrupper)
-rr
-rrlower
-rrupper
-
 
 ############################################################################################################
 ######          FIGURE 2: INTERPRETING JOINT MODEL RESULTS: DIFFERENT VALUES OF RANDOM EFFECTS         #####
 
 rm(list=ls())
 par(mfrow=c(1,2))
-load(file="cffit.Rdata",sep=""))
+load(file="cffit.Rdata")
 est <- cffit.epinet$estimate
 
-RE1 <- c(20,1,0)    # No quadratic age RE in the model, so set to 0 for everyone
-RE2 <- c(0,0,0)
-RE3 <- c(-20,-1,0)
+# Set REs
+# No quadratic age RE in the model, so set to 0 for everyone
+RE1 <- c(20,1,0)     # REs for high intercept, shallow slope   
+RE2 <- c(0,0,0)      # REs for population intercept and slope
+RE3 <- c(-20,-1,0)   # REs for low intercept, steep slope
 
-# Fixed effects (intercept, slope and quadrtic term) for a 20-year old man (age in data is age - 5) born in 1980 (mean birth year=1986, birthyear_c=-6), two F508 alleles
+# Fixed effects (intercept, slope and quadratic term) for a 20-year old man (age in data is age - 5) born in 1980 (mean birth year=1986, birthyear_c=-6), two F508 alleles
 byr <- -6
 f508 <- 0     
 sex <- 1
@@ -262,22 +223,26 @@ X1.quad <- 1
 beta.int <- est[c(1,4:6,9:10)]
 beta.slope <- est[c(2,7,8)]
 beta.quad <- est[3]
+# Fixed effect part of longitudinal linear predictor
 intslope.fixed <- c(sum(X1.int*beta.int),sum(X1.slope*beta.slope),X1.quad*beta.quad)
 # Add in the random effects
 intslope1 <- intslope.fixed+RE1
 intslope2 <- intslope.fixed+RE2
 intslope3 <- intslope.fixed+RE3
 
+# Functions for predicted longitudinal trajectories
 f1 <- function(age){ intslope1[1] + intslope1[2]*(age-5) + intslope1[3]*(age-5)^2}
 f2 <- function(age){ intslope2[1] + intslope2[2]*(age-5) + intslope2[3]*(age-5)^2}
 f3 <- function(age){ intslope3[1] + intslope3[2]*(age-5) + intslope3[3]*(age-5)^2}
 
+# Plot the longitudinal functions
 curve(f1, xlim=c(20,30), ylim=c(0,120), xlab="Age (yrs)", ylab="%FEV1", bty="l", lwd=2, lty=1, main="Longitudinal trajectories")
 curve(f2, xlim=c(20,30), ylim=c(0,120), xlab="Age (yrs)", ylab="%FEV1", bty="l", lwd=2, add=T,lty=2)
 curve(f3, xlim=c(20,30), ylim=c(0,120), xlab="Age (yrs)", ylab="%FEV1", bty="l", lwd=2, add=T, lty=3)
 legend("topright", lwd=2, lty=1:3, legend=c("High intercept, shallow slope", "Pop. intercept, pop. slope", 
                                             "Low intercept, steep slope"), cex=0.7, bty="n")
 
+# Now get the predicted survival functions
 prob1 <- 1
 prob2 <- 1
 prob3 <- 1
@@ -289,7 +254,7 @@ for(i in 1:10){
   # Age at midpoint of current interval
   currentage <- (15+i-0.5)
   X1.long <- c(1,currentage,currentage^2,byr,sex,f508,currentage*sex,currentage*f508,byr*sex,byr*f508)
-  # Current FEV values
+  # Current FEV values and slopes
   currentfev1 <- sum(X1.long*beta.long)+RE1[1]+RE1[2]*currentage
   currentfev2 <- sum(X1.long*beta.long)+RE2[1]+RE2[2]*currentage
   currentfev3 <- sum(X1.long*beta.long)+RE3[1]+RE3[2]*currentage
@@ -311,10 +276,11 @@ for(i in 1:10){
   prob3 <- c(prob3,prob3[length(prob3)]*prob3.i)
 }
 
-x <- rep(20:30,c(1,rep(2,length(prob1)-1)))
-y1 <- rep(prob1,c(rep(2,length(prob1)-1),1))
-y2 <- rep(prob2,c(rep(2,length(prob2)-1),1))
-y3 <- rep(prob3,c(rep(2,length(prob3)-1),1))
+# Vectors containing points to plot
+x <- rep(20:30,c(1,rep(2,length(prob1)-1)))  # Age on x-axis
+y1 <- rep(prob1,c(rep(2,length(prob1)-1),1))  # Survival probability for RE set 1
+y2 <- rep(prob2,c(rep(2,length(prob2)-1),1))  # Survival probability for RE set 2
+y3 <- rep(prob3,c(rep(2,length(prob3)-1),1))  # Survival probability for RE set 3
 
 plot(x,y1, type="l", ylim=c(0,1), lty=1, main="Survival probabilities", xlab="Age (yrs)", ylab="Proportion alive", bty="l")
 par(new=T)
@@ -361,6 +327,7 @@ curve(f1, xlim=c(20,30), ylim=c(0,100), xlab="Age (yrs)", ylab="%FEV1", bty="l",
 curve(f2, xlim=c(20,30), ylim=c(0,100), xlab="Age (yrs)", ylab="%FEV1", bty="l", lwd=2, lty=2, add=T)
 legend("topright", lty=1:2, lwd=2, legend=c("Males", "Females"), cex=0.7, bty="n")
 
+# Now get the predicted survival functions
 prob1 <- 1
 prob2 <- 1
 beta.surv <- est[c(11:15,20:21)]
